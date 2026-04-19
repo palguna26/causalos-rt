@@ -1,0 +1,24 @@
+﻿[package]
+name = "causalos-sdk"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Windows API for Shared Memory
+windows-sys = { version = "0.52", features = [
+    "Win32_Foundation",
+    "Win32_System_Memory",
+    "Win32_Security",
+] }
+
+# Async runtime
+tokio = { version = "1.36", features = ["full"] }
+tonic = "0.11"
+prost = "0.12"
+anyhow = "1.0"
+flatbuffers = "23.5.26"
+zerocopy = { version = "0.8", features = ["derive"] }
+
+[build-dependencies]
+tonic-build = "0.11"
+prost-build = "0.12"

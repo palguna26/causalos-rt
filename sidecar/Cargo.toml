@@ -1,0 +1,25 @@
+[package]
+name = "sidecar"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.36", features = ["full"] }
+tokio-stream = { version = "0.1", features = ["net"] }
+tonic = "0.11"
+prost = "0.12"
+flatbuffers = "23.5.26"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+opentelemetry = { version = "0.21" }
+opentelemetry_sdk = { version = "0.21", features = ["rt-tokio"] }
+opentelemetry-stdout = "0.2"
+tracing-opentelemetry = "0.22"
+fxhash = "0.2"
+anyhow = "1.0"
+futures = "0.3"
+
+[build-dependencies]
+tonic-build = "0.11"
+prost-build = "0.12"

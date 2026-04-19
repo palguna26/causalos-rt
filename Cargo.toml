@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "sidecar",
+    "sdk",
+]
+resolver = "2"
