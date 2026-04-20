@@ -4,6 +4,7 @@ pub mod engine {
     pub mod diagnostics;
     pub mod promotion;
     pub mod trace;
+    pub mod simulation;
 }
 
 pub mod storage {

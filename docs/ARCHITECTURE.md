@@ -1,39 +1,43 @@
-﻿# Architecture Specification: CausalOS Agent Runtime
+# Architecture Specification: CausalOS v2
 
-## 1. Overview
-CausalOS utilizes a **Split-Plane Architecture** to isolate safety-critical governance and institutional memory management from the high-frequency execution loop of the AI agent.
+CausalOS utilizes a **Causal Governance Architecture** to provide deterministic safety for autonomous agents in high-stakes environments.
 
-## 2. Component breakdown
+## 1. The Kernel Host (Rust)
+The Kernel is the primary gatekeeper of the system, implemented in safe Rust.
 
-### 2.1 Control Plane (The Sidecar Kernel)
-The Sidecar is the "Source of Truth" implemented in Rust.
-- **Service Layer (tonic/gRPC)**: Exposes the Kernel API for contracts and traces.
-- **Governance Engine**: Evaluates plans against heuristic guardrails.
-- **Diagnostic Engine**: Determines "Deterministic Success" vs "Causal Failure".
-- **Promotion Manager**: Sanitizes and promotes successful execution patterns to the ledger.
-- **Causal Ledger**: Binary append-only persistence of institutional events.
+### 1.1 Governance Engine (The Watchdog)
+Evolves tool-use from "Best Effort" to **Two-Phase Commit (2PC)**:
+- **Phase 1 (Prepare)**: Orchestrates the `HybridSimulator`. 
+- **Phase 2 (Commit)**: Finalizes the executive action and logs the causal outcome.
 
-### 2.2 Data Plane (Embedded Hot Path)
-A lightweight SDK integrated into the Agent's reasoning path.
-- **Shared Memory (L1)**: Maps the Kernel's hot patterns directly into the Agent's address space.
-- **Named Pipe Client**: Async communication with the Kernel watchdog for heartbeats and injections.
+### 1.2 Intelligence Engine (The Memory)
+Manages the **Causal Ledger DAG**. 
+- **Trajectory Recognition**: Every session is a trajectory in the DAG.
+- **Root Cause Analysis (RCA)**: Detects "Trajectory Divergence" by finding where a previously successful path (parent_hash) led to a new failure.
 
-## 3. Communication Fabric (IPC)
+## 2. Hybrid Simulation Loop
 
-| Channel | Layer | Strategy | Performance Target |
-| :--- | :--- | :--- | :--- |
-| **Control Plane** | Governance | gRPC over Loopback | <50ms (Plan Analysis) |
-| **Hot Path** | Signaling | Windows Named Pipes | <5ms (Validity Signals) |
-| **Cache Layer** | Context | Win32 Shared Memory | <1ms (Zero-copy Read) |
+CausalOS avoids the "Simulation Fallacy" (where a passing dry-run fails in production) by layering historical evidence over mechanical probes.
 
-## 4. The Learning Loop (CNS)
-CausalOS implements a **Closed-loop Neuro-Symbolic (CNS)** system:
-1.  **Intent Evaluation**: Agent proposes a plan. Kernel grants a contract.
-2.  **Instrumented Execution**: Agent performs tools calls. Kernel enforces invariants.
-3.  **Outcome Classification**: Kernel analyzes the "Details" segment of the outcome.
-4.  **Reinforcement**: Ranker adjusts weights based on success/failure patterns.
-5.  **Promotion**: High-confidence successes are masked (PII removal) and written to the ledger as new "Causal Context".
+1.  **Probe Phase**: Executes a native dry-run (e.g., `terraform plan`) via subprocess.
+2.  **Causal Filter Phase**: Cross-references the probe result against the `Intelligence Engine`.
+3.  **Verdict**: Returns a deterministic signal (`ALLOW`, `AUDIT_REQUIRED`, etc.).
 
-## 5. Resilience & Survival Mode
-- **Process Isolation**: The Kernel runs independently. If the Agent process crashes, the Kernel preserves the trace up to the last ACK.
-- **Deterministic Guardrails**: Even if the Sidecar logic fails, the "Hard Block" default ensures the system fails safe.
+## 3. Storage Hierarchy (Factual)
+
+| Component | Mechanism | Implementation |
+| :--- | :--- | :--- |
+| **Causal Ledger** | Binary DAG | `storage/ledger.rs` (linked via parent_hash) |
+| **Pattern Index** | In-Memory Cache | `fxhash` map of historical outcomes |
+| **Protocol** | Control Plane | `tonic` gRPC (HTTP/2) |
+
+## 4. Resilience Patterns
+- **Fail-Safe Default**: If the Simulation Probe fails to return within its timeout, the Kernel defaults to `SOFT_BLOCK`.
+- **Causal Consistency**: The ledger prevents "Rewriting History" by enforcing an append-only DAG structure with cryptographic hashing (planned upgrade).
+
+---
+
+## 5. Eliminated Components (Removed for Reliability)
+To ensure 100% factual accuracy, the following "Alpha" components have been stripped until completion:
+- **L1 Shared Memory**: Removed legacy support to focus on gRPC performance.
+- **Named Pipe Signaling**: Consolidating all signals into the unified gRPC control bus.

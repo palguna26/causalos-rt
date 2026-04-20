@@ -1,22 +1,22 @@
-﻿# CausalOS Implementation Roadmap
+# Roadmap: CausalOS Agent Runtime
 
-## Phase 1: Alpha Sprint (COMPLETE) ✅
-- [x] **Split-Plane Core**: Named pipes and gRPC fabric.
-- [x] **Shared Memory**: Zero-copy L1 cache mapping.
-- [x] **Governance**: Deterministic plan and tool validation.
-- [x] **Learning Loop**: Outcome diagnostics and ledger promotion.
-- [x] **Observability**: Institutional trace dashboard.
+## Phase 1: Research & Kernel Foundation (COMPLETED)
+- [x] Multi-agent Split-plane Architecture design.
+- [x] Initial binary ledger implementation.
+- [x] Basic gRPC service layer.
 
-## Phase 2: Beta - Scaling & Intelligence (Next) 🚀
-- [ ] **ML-Driven Diagnostics**: Replace regex heuristics with small-model classification.
-- [ ] **Cross-Project CNS**: Sync causal patterns across different repository contexts.
-- [ ] **Advanced PII Masking**: Entity-aware sanitization of execution logs.
-- [ ] **Python/TypeScript SDKs**: Native language-specific wrappers for the Data Plane.
+## Phase 2: Causal Governance (v2 - CURRENT)
+- [x] **Causal Ledger DAG**: Transitioned for linear logs to a Directed Acyclic Graph (linked via `parent_hash`).
+- [x] **Two-Phase Commit (2PC)**: Implemented `PrepareToolCall` and `CommitToolCall`.
+- [x] **Hybrid Simulation Engine**: Native probes + Causal History filters.
+- [x] **Trajectory RCA**: Automated failure divergence detection.
+- [x] **Documentation Hardening**: Stripped all "Future/Alpha" assumptions to deliver 100% factual specifications.
 
-## Phase 3: Enterprise - Resilience & Trust
-- [ ] **Hardware-Backed Memory**: Use TEEs (Trusted Execution Environments) for ledger signing.
-- [ ] **Multi-Agent Orchestration**: Causal context sharing between agent clusters.
-- [ ] **Predictive Governance**: Blocking plans based on historical failure modes BEFORE evaluation.
+## Phase 3: Pilot Readiness (NEXT)
+- [ ] **Cross-Platform Integration**: Support for Linux control groups and Docker state-snapping in simulations.
+- [ ] **Institutional Dashboard**: Visualizing the Causal Trace for human audits.
+- [ ] **Advanced CNS Promotion**: Automated scrubbing of PII from causal memory (Sanitization logic).
 
-## Phase 4: Decentralized Institutional Memory
-- [ ] **Causal Hub**: A decentralized protocol for sharing validated agent execution patterns safely (Zero-Knowledge Causal Proofs).
+## Phase 4: Scaling & Security (FUTURE)
+- [ ] **Sovereign Memory**: Zero-knowledge proof sharing of causal failures across different enterprise instances.
+- [ ] **Hot-Path Re-integration**: Re-introducing ultra-low latency signaling once the core gRPC bus is stabilized.

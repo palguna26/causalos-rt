@@ -1,10 +1,11 @@
-﻿use tracing::{info, instrument};
+use tracing::{info, instrument};
 use sidecar::ipc::windows::run_named_pipe_server;
 use sidecar::engine::governance::GovernanceEngine;
 use sidecar::engine::diagnostics::{DiagnosticEngine, OutcomeClass};
 use sidecar::engine::promotion::PromotionManager;
 use sidecar::engine::ranking::Ranker;
 use sidecar::engine::trace::TraceEngine;
+use sidecar::engine::simulation::{HybridSimulator, SimulationVerdict};
 use sidecar::storage::ledger::CausalLedger;
 use tonic::{transport::Server, Request, Response, Status};
 use tokio::sync::RwLock;
@@ -19,13 +20,14 @@ pub mod kernel_proto {
 }
 
 use kernel_proto::kernel_service_server::{KernelService, KernelServiceServer};
-use kernel_proto::*;
+pub use kernel_proto::*;
 
 pub struct KernelHost {
     governance: GovernanceEngine,
     diagnostics: DiagnosticEngine,
     promotion: PromotionManager,
     trace_engine: TraceEngine,
+    simulator: HybridSimulator,
     ranker: Arc<RwLock<Ranker>>,
     ledger: Arc<RwLock<CausalLedger>>,
 }
@@ -85,26 +87,46 @@ impl KernelService for KernelHost {
         request: Request<ToolCallRequest>,
     ) -> Result<Response<ToolCallVerdict>, Status> {
         let req = request.into_inner();
+        
+        // 1. Static Governance
         let verdict = self.governance.evaluate_tool_call(&req.tool_name, &req.arguments_json);
+        
+        // 2. Causal Hybrid Simulation
+        let args: serde_json::Value = serde_json::from_str(&req.arguments_json).unwrap_or_default();
+        let ledger = self.ledger.read().await;
+        let sim_result = self.simulator.simulate(&req.tool_name, &args, &ledger);
 
-        use sidecar::engine::governance::Action as GAction;
-        let proto_action = match verdict.action {
-            GAction::Allow => tool_call_verdict::Action::Allow,
-            GAction::SoftBlock => tool_call_verdict::Action::SoftBlock,
-            GAction::HardBlock => tool_call_verdict::Action::HardBlock,
-            GAction::AuditRequired => tool_call_verdict::Action::AuditRequired,
+        use kernel_proto::tool_call_verdict::Action;
+        let (action, reason) = match sim_result {
+            SimulationVerdict::Success => {
+                use sidecar::engine::governance::Action as GAction;
+                match verdict.action {
+                    GAction::Allow => (Action::Allow, "Simulation passed and governance cleared.".to_string()),
+                    GAction::SoftBlock => (Action::SoftBlock, verdict.reason),
+                    GAction::HardBlock => (Action::HardBlock, verdict.reason),
+                    GAction::AuditRequired => (Action::AuditRequired, verdict.reason),
+                }
+            },
+            SimulationVerdict::Failure(msg) => (Action::HardBlock, format!("Dry-run simulation failed: {}", msg)),
+            SimulationVerdict::CausalAlert(msg) => (Action::AuditRequired, format!("CAUSAL ALERT: {}", msg)),
         };
 
         Ok(Response::new(ToolCallVerdict {
-            action: proto_action as i32,
-            reason: verdict.reason,
+            action: action as i32,
+            reason,
         }))
     }
 
     async fn commit_tool_call(
         &self,
-        _request: Request<ToolOutcomeRequest>,
+        request: Request<ToolOutcomeRequest>,
     ) -> Result<Response<CommitAck>, Status> {
+        let req = request.into_inner();
+        info!("Committing tool call outcome: {}", req.tool_call_id);
+        
+        let mut ledger = self.ledger.write().await;
+        let _ = ledger.append_event("TOOL_OUTCOME", req.outcome_json.as_bytes());
+
         Ok(Response::new(CommitAck { committed: true }))
     }
 
@@ -155,6 +177,7 @@ async fn main() -> anyhow::Result<()> {
         diagnostics: DiagnosticEngine::new(),
         promotion: PromotionManager::new(),
         trace_engine: TraceEngine::new(),
+        simulator: HybridSimulator::new(),
         ranker,
         ledger,
     };
@@ -186,3 +209,4 @@ async fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
+
